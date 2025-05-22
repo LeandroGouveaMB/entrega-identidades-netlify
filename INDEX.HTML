@@ -104,7 +104,26 @@
   <script>
     let linhaAtual = null;
 
-    function salvarRegistro() {
+    // Manipulador de envio do formulário
+    const form = document.getElementById("formulario");
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault(); // Impede o comportamento padrão (abrir nova aba)
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch("/", {
+          method: "POST",
+          body: formData
+        });
+        console.log("Dados enviados ao Netlify!");
+        alert("Ação registrada com sucesso!");
+      } catch (error) {
+        console.error("Erro ao enviar dados:", error);
+        alert("Erro ao registrar. Verifique o console.");
+      }
+    });
+
+    async function salvarRegistro() {
       const nipInput = document.getElementById("nip");
       const nip = nipInput.value.trim();
       if (!nip) {
@@ -126,12 +145,12 @@
 
       linhaAtual = novaLinha;
 
-      // Preencher campos ocultos e enviar formulário
+      // Preencher campos ocultos e disparar evento de submit
+      document.getElementById("nip").value = nip;
       document.getElementById("dataHora").value = dataHora;
       document.getElementById("recebidoPor").value = "";
       document.getElementById("autorizacao").value = "";
-      const form = document.getElementById("formulario");
-      form.submit();
+      form.dispatchEvent(new Event("submit"));
 
       nipCell.scrollIntoView({ behavior: "smooth", block: "center" });
       nipInput.value = "";
@@ -146,43 +165,42 @@
       document.getElementById("fileInput").click();
     }
 
-    function inserirImagem(input) {
+    async function inserirImagem(input) {
       const arquivo = input.files[0];
       if (!arquivo || !linhaAtual) return;
 
       const leitor = new FileReader();
-      leitor.onload = function(e) {
+      leitor.onload = async function(e) {
         const img = document.createElement("img");
         img.src = e.target.result;
         img.style.maxHeight = "50px";
         linhaAtual.cells[2].innerHTML = "";
         linhaAtual.cells[2].appendChild(img);
 
-        // Enviar formulário com a imagem
-        document.getElementById("recebidoPor").value = "Imagem enviada";
-        document.getElementById("dataHora").value = linhaAtual.cells[1].textContent;
+        // Preencher campos ocultos e disparar evento de submit
         document.getElementById("nip").value = linhaAtual.cells[0].textContent;
+        document.getElementById("dataHora").value = linhaAtual.cells[1].textContent;
+        document.getElementById("recebidoPor").value = "Imagem enviada";
         document.getElementById("autorizacao").value = linhaAtual.cells[3].textContent;
-        const form = document.getElementById("formulario");
         const formData = new FormData(form);
         formData.append("imagem", arquivo);
-        fetch(form.action, {
-          method: "POST",
-          body: formData
-        })
-        .then(() => {
+
+        try {
+          await fetch("/", {
+            method: "POST",
+            body: formData
+          });
           console.log("Imagem enviada ao Netlify!");
-          alert("Imagem enviada com sucesso!");
-        })
-        .catch(error => {
+          alert("Imagem registrada com sucesso!");
+        } catch (error) {
           console.error("Erro ao enviar imagem:", error);
-          alert("Erro ao enviar imagem. Verifique o console.");
-        });
+          alert("Erro ao registrar imagem. Verifique o console.");
+        }
       };
       leitor.readAsDataURL(arquivo);
     }
 
-    function marcarImpossibilitado() {
+    async function marcarImpossibilitado() {
       const tabela = document.getElementById("tabela").getElementsByTagName("tbody")[0];
       if (tabela.rows.length === 0) {
         alert("Nenhum registro para marcar.");
@@ -192,16 +210,15 @@
       const ultimaLinha = tabela.rows[tabela.rows.length - 1];
       ultimaLinha.cells[2].textContent = "Impossibilitado de Assinar";
 
-      // Enviar formulário
-      document.getElementById("recebidoPor").value = "Impossibilitado de Assinar";
-      document.getElementById("dataHora").value = ultimaLinha.cells[1].textContent;
+      // Preencher campos ocultos e disparar evento de submit
       document.getElementById("nip").value = ultimaLinha.cells[0].textContent;
+      document.getElementById("dataHora").value = ultimaLinha.cells[1].textContent;
+      document.getElementById("recebidoPor").value = "Impossibilitado de Assinar";
       document.getElementById("autorizacao").value = ultimaLinha.cells[3].textContent;
-      const form = document.getElementById("formulario");
-      form.submit();
+      form.dispatchEvent(new Event("submit"));
     }
 
-    function marcarAutorizacao() {
+    async function marcarAutorizacao() {
       if (!linhaAtual) {
         alert("Salve o registro antes de marcar a autorização.");
         return;
@@ -209,13 +226,12 @@
 
       linhaAtual.cells[3].textContent = "Trouxe Autorização";
 
-      // Enviar formulário
-      document.getElementById("autorizacao").value = "Trouxe Autorização";
-      document.getElementById("dataHora").value = linhaAtual.cells[1].textContent;
+      // Preencher campos ocultos e disparar evento de submit
       document.getElementById("nip").value = linhaAtual.cells[0].textContent;
+      document.getElementById("dataHora").value = linhaAtual.cells[1].textContent;
       document.getElementById("recebidoPor").value = linhaAtual.cells[2].textContent || (linhaAtual.cells[2].innerHTML.includes("img") ? "Imagem enviada" : "");
-      const form = document.getElementById("formulario");
-      form.submit();
+      document.getElementById("autorizacao").value = "Trouxe Autorização";
+      form.dispatchEvent(new Event("submit"));
     }
 
     function gerarRecibo() {
